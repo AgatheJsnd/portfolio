@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Portfolio</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="intro-screen" class="intro-screen">
+        <div class="intro-content">
+            <h1>Que votre aventure commence</h1>
+        </div>
+    </div>
+
+    <div id="portfolio-container" class="portfolio-container hidden">
+        <div class="container">
+            <div id="map-container"></div>
+            <button id="back-button" class="back-button hidden">
+                <span class="arrow">←</span> Retour à la carte
+            </button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script>
+        // Gestion de l'écran d'introduction
+        const introScreen = document.getElementById('intro-screen');
+        const portfolioContainer = document.getElementById('portfolio-container');
+        const backButton = document.getElementById('back-button');
+
+        // Afficher l'intro pendant 2 secondes puis la faire disparaître
+        setTimeout(() => {
+            introScreen.style.display = 'none';
+            portfolioContainer.classList.remove('hidden');
+            initMap();
+        }, 2000);
+
+        // Initialisation de la carte
+        function initMap() {
+            const map = L.map('map-container').setView([20, 0], 2);
+
+            // Ajout du fond de carte avec un style qui montre uniquement les continents
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors & © CARTO',
+                detectRetina: true,
+                maxZoom: 19,
+                minZoom: 1,
+                noWrap: true,
+                subdomains: 'abcd'
+            }).addTo(map);
+
+            // Ajouter un style pour les continents
+            const geojsonStyle = {
+                fillColor: '#2ecc71',
+                fillOpacity: 0.6,
+                color: '#27ae60',
+                weight: 1
+            };
+
+            // Appliquer le style à tous les continents
+            map.eachLayer((layer) => {
+                if (layer instanceof L.GeoJSON) {
+                    layer.setStyle(geojsonStyle);
+                }
+            });
+
+            // Ajouter les étiquettes personnalisées pour les continents
+            const continentLabels = [
+                {
+                    lat: 48.8566,
+                    lng: 2.3522,
+                    text: 'À propos de moi',
+                    className: 'continent-label',
+                    offset: [0, 40]  // Décalage vers le bas
+                },
+                {
+                    lat: 37.0902,
+                    lng: -95.7129,
+                    text: 'Mes projets',
+                    className: 'continent-label',
+                    offset: [0, 40]
+                },
+                {
+                    lat: 35.8617,
+                    lng: 104.1954,
+                    text: 'Les outils que je maîtrise',
+                    className: 'continent-label',
+                    offset: [0, 40]
+                },
+                {
+                    lat: -25.2744,
+                    lng: 133.7751,
+                    text: 'Contacter moi',
+                    className: 'continent-label',
+                    offset: [0, 40]
+                }
+            ];
+
+            // Créer les étiquettes personnalisées
+            continentLabels.forEach(label => {
+                L.marker([label.lat, label.lng], {
+                    icon: L.divIcon({
+                        className: label.className,
+                        html: `<div class=\"custom-continent-label\">${label.text}</div>`,
+                        iconSize: [200, 40],
+                        iconAnchor: [100, 60] // Centré horizontalement, plus bas verticalement
+                    })
+                }).addTo(map);
+            });
+
+            // Fonction pour créer un marqueur personnalisé avec tooltip
+            function createCustomMarker(lat, lng, title, content, color, onClick) {
+                const marker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background-color: ${color};" class="marker-pin"></div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30]
+                    })
+                }).addTo(map);
+                
+                const tooltip = L.tooltip({
+                    permanent: false,
+                    direction: 'top',
+                    className: 'custom-tooltip'
+                })
+                .setContent(`<div class="tooltip-content">
+                    <h3>${title}</h3>
+                    <p>${content}</p>
+                </div>`);
+
+                marker.bindTooltip(tooltip);
+                
+                if (onClick) {
+                    marker.on('click', onClick);
+                }
+                
+                return marker;
+            }
+
+            // Définition des pays et leurs images
+            const countries = {
+                france: {
+                    name: 'France',
+                    bounds: [[41.3, -5.2], [51.1, 9.6]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/174/174857.png',
+                        title: 'LinkedIn',
+                        link: 'https://www.linkedin.com/in/votre-profil'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de la France
+                },
+                spain: {
+                    name: 'Espagne',
+                    bounds: [[36.0, -9.4], [43.8, 3.3]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/3178/3178158.png',
+                        title: 'Email',
+                        link: 'mailto:votre@email.com'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de l'Espagne
+                },
+                italy: {
+                    name: 'Italie',
+                    bounds: [[36.6, 6.7], [47.1, 18.5]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+                        title: 'Photo de profil',
+                        link: '#'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de l'Italie
+                },
+                germany: {
+                    name: 'Allemagne',
+                    bounds: [[47.2, 5.9], [55.1, 15.0]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/337/337946.png',
+                        title: 'CV',
+                        link: 'chemin/vers/votre/cv.pdf'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de l'Allemagne
+                }
+            };
+
+            // Définition des pays et leurs images pour les compétences
+            const skillCountries = {
+                china: {
+                    name: 'Chine',
+                    bounds: [[18.0, 73.0], [53.0, 135.0]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/5968/5968350.png',
+                        title: 'Python',
+                        link: '#'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de la Chine
+                },
+                japan: {
+                    name: 'Japon',
+                    bounds: [[24.0, 122.0], [45.0, 146.0]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/5968/5968358.png',
+                        title: 'Make',
+                        link: '#'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG du Japon
+                }
+            };
+
+            // Définition des pays et leurs images pour le contact
+            const contactCountries = {
+                australia: {
+                    name: 'Australie',
+                    bounds: [[-43.0, 113.0], [-10.0, 154.0]],
+                    image: {
+                        url: 'https://cdn-icons-png.flaticon.com/512/174/174857.png',
+                        title: 'LinkedIn',
+                        link: 'https://www.linkedin.com/in/votre-profil'
+                    },
+                    path: "M 0,0 L 100,0 L 100,100 L 0,100 Z" // À remplacer par le vrai path SVG de l'Australie
+                }
+            };
+
+            // Fonction pour créer un conteneur d'image pour un pays
+            function createCountryImageContainer(country) {
+                return L.divIcon({
+                    className: 'country-image-container',
+                    html: `
+                        <div class="country-container">
+                            <svg class="country-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <defs>
+                                    <clipPath id="country-clip-${country.name.toLowerCase()}">
+                                        <path d="${country.path}" />
+                                    </clipPath>
+                                </defs>
+                                <image 
+                                    href="${country.image.url}"
+                                    width="100"
+                                    height="100"
+                                    clip-path="url(#country-clip-${country.name.toLowerCase()})"
+                                    class="country-image"
+                                />
+                            </svg>
+                            <div class="country-label">${country.image.title}</div>
+                        </div>
+                    `,
+                    iconSize: [300, 300],
+                    iconAnchor: [150, 150]
+                });
+            }
+
+            // Fonction pour revenir à la vue globale
+            function backToGlobal() {
+                map.setView([20, 0], 2);
+                backButton.classList.add('hidden');
+                
+                // Supprimer toutes les images de pays
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker || layer instanceof L.Rectangle) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Réafficher les épingles et le chemin
+                markers.forEach(marker => marker.addTo(map));
+                path.addTo(map);
+            }
+
+            // Fonction pour zoomer sur l'Europe et afficher les images
+            function zoomToEurope() {
+                map.setView([48.8566, 2.3522], 5);
+                backButton.classList.remove('hidden');
+
+                // Cacher les épingles et le chemin
+                markers.forEach(marker => map.removeLayer(marker));
+                map.removeLayer(path);
+
+                // Désactiver les étiquettes des pays
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        layer.options.attribution = '';
+                    }
+                });
+
+                // Afficher les images pour chaque pays
+                Object.values(countries).forEach(country => {
+                    // Calculer le centre du pays
+                    const centerLat = (country.bounds[0][0] + country.bounds[1][0]) / 2;
+                    const centerLng = (country.bounds[0][1] + country.bounds[1][1]) / 2;
+
+                    // Ajouter l'image du pays
+                    L.marker([centerLat, centerLng], {
+                        icon: L.divIcon({
+                            className: 'country-image-container',
+                            html: `
+                                <div class="country-container">
+                                    <svg class="country-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <defs>
+                                            <clipPath id="country-clip-${country.name.toLowerCase()}">
+                                                <path d="${country.path}" />
+                                            </clipPath>
+                                        </defs>
+                                        <image 
+                                            href="${country.image.url}"
+                                            width="100"
+                                            height="100"
+                                            clip-path="url(#country-clip-${country.name.toLowerCase()})"
+                                            class="country-image"
+                                        />
+                                    </svg>
+                                    <div class="country-label">${country.image.title}</div>
+                                </div>
+                            `,
+                            iconSize: [60, 60],
+                            iconAnchor: [30, 30]
+                        }),
+                        interactive: true
+                    }).addTo(map).on('click', function() {
+                        if (country.image.link) {
+                            window.open(country.image.link, '_blank');
+                        }
+                    });
+                });
+            }
+
+            // Fonction pour zoomer sur les compétences
+            function zoomToSkills() {
+                map.setView([35.8617, 104.1954], 4);
+                backButton.classList.remove('hidden');
+
+                // Cacher les épingles et le chemin
+                markers.forEach(marker => map.removeLayer(marker));
+                map.removeLayer(path);
+
+                // Désactiver les étiquettes des pays
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        layer.options.attribution = '';
+                    }
+                });
+
+                // Afficher les images pour chaque pays de compétence
+                Object.values(skillCountries).forEach(country => {
+                    // Calculer le centre du pays
+                    const centerLat = (country.bounds[0][0] + country.bounds[1][0]) / 2;
+                    const centerLng = (country.bounds[0][1] + country.bounds[1][1]) / 2;
+
+                    // Ajouter l'image du pays
+                    L.marker([centerLat, centerLng], {
+                        icon: L.divIcon({
+                            className: 'country-image-container',
+                            html: `
+                                <div class="country-container">
+                                    <svg class="country-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <defs>
+                                            <clipPath id="country-clip-${country.name.toLowerCase()}">
+                                                <path d="${country.path}" />
+                                            </clipPath>
+                                        </defs>
+                                        <image 
+                                            href="${country.image.url}"
+                                            width="100"
+                                            height="100"
+                                            clip-path="url(#country-clip-${country.name.toLowerCase()})"
+                                            class="country-image"
+                                        />
+                                    </svg>
+                                    <div class="country-label">${country.image.title}</div>
+                                </div>
+                            `,
+                            iconSize: [60, 60],
+                            iconAnchor: [30, 30]
+                        }),
+                        interactive: true
+                    }).addTo(map);
+                });
+            }
+
+            // Fonction pour zoomer sur le contact
+            function zoomToContact() {
+                map.setView([-25.2744, 133.7751], 4);
+                backButton.classList.remove('hidden');
+
+                // Cacher les épingles et le chemin
+                markers.forEach(marker => map.removeLayer(marker));
+                map.removeLayer(path);
+
+                // Désactiver les étiquettes des pays
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        layer.options.attribution = '';
+                    }
+                });
+
+                // Afficher l'image pour le pays de contact
+                Object.values(contactCountries).forEach(country => {
+                    // Calculer le centre du pays
+                    const centerLat = (country.bounds[0][0] + country.bounds[1][0]) / 2;
+                    const centerLng = (country.bounds[0][1] + country.bounds[1][1]) / 2;
+
+                    // Ajouter l'image du pays
+                    L.marker([centerLat, centerLng], {
+                        icon: L.divIcon({
+                            className: 'country-image-container',
+                            html: `
+                                <div class="country-container">
+                                    <svg class="country-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <defs>
+                                            <clipPath id="country-clip-${country.name.toLowerCase()}">
+                                                <path d="${country.path}" />
+                                            </clipPath>
+                                        </defs>
+                                        <image 
+                                            href="${country.image.url}"
+                                            width="100"
+                                            height="100"
+                                            clip-path="url(#country-clip-${country.name.toLowerCase()})"
+                                            class="country-image"
+                                        />
+                                    </svg>
+                                    <div class="country-label">${country.image.title}</div>
+                                </div>
+                            `,
+                            iconSize: [60, 60],
+                            iconAnchor: [30, 30]
+                        }),
+                        interactive: true
+                    }).addTo(map).on('click', function() {
+                        if (country.image.link) {
+                            window.open(country.image.link, '_blank');
+                        }
+                    });
+                });
+            }
+
+            // Définition des points dans l'ordre du parcours
+            const points = [
+                {
+                    lat: 48.8566,
+                    lng: 2.3522,
+                    title: 'À propos de moi',
+                    content: 'Cliquez pour explorer l\'Europe',
+                    color: '#CD5C5C',
+                    onClick: zoomToEurope
+                },
+                {
+                    lat: 37.0902,
+                    lng: -95.7129,
+                    title: 'Mes Projets',
+                    content: 'Cliquez pour voir mes projets',
+                    color: '#CD5C5C',
+                    onClick: zoomToProjects
+                },
+                {
+                    lat: 35.8617,
+                    lng: 104.1954,
+                    title: 'Mes Compétences',
+                    content: 'Survolez pour voir mes compétences',
+                    color: '#CD5C5C',
+                    onClick: zoomToSkills
+                },
+                {
+                    lat: -25.2744,
+                    lng: 133.7751,
+                    title: 'Contact',
+                    content: 'Survolez pour me contacter',
+                    color: '#CD5C5C',
+                    onClick: zoomToContact
+                }
+            ];
+
+            // Création des marqueurs
+            const markers = points.map(point => 
+                createCustomMarker(point.lat, point.lng, point.title, point.content, point.color, point.onClick)
+            );
+
+            // Création du chemin animé
+            const path = L.polyline(points.map(p => [p.lat, p.lng]), {
+                color: '#FFD93D',
+                weight: 3,
+                opacity: 0.8,
+                dashArray: '10, 10',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            // Animation du chemin
+            let dashOffset = 0;
+            setInterval(() => {
+                dashOffset = (dashOffset + 1) % 20;
+                path.setStyle({ dashOffset: dashOffset });
+            }, 100);
+
+            // Fonction pour zoomer sur les projets
+            function zoomToProjects() {
+                // Ajuster la vue pour centrer les projets
+                map.setView([37.0902, -95.7129], 4);
+                backButton.classList.remove('hidden');
+
+                // Cacher les épingles et le chemin
+                markers.forEach(marker => map.removeLayer(marker));
+                map.removeLayer(path);
+
+                // Désactiver les étiquettes des pays
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        layer.options.attribution = '';
+                    }
+                });
+
+                // Créer le conteneur des projets
+                const projectsContainer = L.divIcon({
+                    className: 'projects-container',
+                    html: `
+                        <div class="projects-grid">
+                            <div class="project-card" onclick="expandProject(this)">
+                                <h3>Projet 1</h3>
+                                <img src="chemin/vers/image1.jpg" alt="Projet 1">
+                                <p>Description courte du projet 1</p>
+                                <div class="project-details hidden">
+                                    <h4>Détails du Projet 1</h4>
+                                    <p>Description détaillée du projet 1...</p>
+                                </div>
+                            </div>
+                            <div class="project-card" onclick="expandProject(this)">
+                                <h3>Projet 2</h3>
+                                <img src="chemin/vers/image2.jpg" alt="Projet 2">
+                                <p>Description courte du projet 2</p>
+                                <div class="project-details hidden">
+                                    <h4>Détails du Projet 2</h4>
+                                    <p>Description détaillée du projet 2...</p>
+                                </div>
+                            </div>
+                            <div class="project-card" onclick="expandProject(this)">
+                                <h3>Projet 3</h3>
+                                <img src="chemin/vers/image3.jpg" alt="Projet 3">
+                                <p>Description courte du projet 3</p>
+                                <div class="project-details hidden">
+                                    <h4>Détails du Projet 3</h4>
+                                    <p>Description détaillée du projet 3...</p>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [1200, 800],
+                    iconAnchor: [600, 400]
+                });
+
+                // Ajouter le conteneur des projets à la carte
+                L.marker([37.0902, -95.7129], {
+                    icon: projectsContainer,
+                    interactive: true,
+                    zIndexOffset: 1000
+                }).addTo(map);
+            }
+
+            // Fonction pour agrandir un projet
+            window.expandProject = function(card) {
+                const allCards = document.querySelectorAll('.project-card');
+                allCards.forEach(c => {
+                    if (c !== card) {
+                        c.classList.add('hidden');
+                    }
+                });
+                card.classList.add('expanded');
+                card.querySelector('.project-details').classList.remove('hidden');
+                
+                // Ajouter le bouton de retour
+                const backToGridButton = document.createElement('button');
+                backToGridButton.className = 'back-to-grid-button';
+                backToGridButton.innerHTML = '<span class="arrow">←</span> Retour aux projets';
+                backToGridButton.onclick = function(e) {
+                    e.stopPropagation();
+                    const allCards = document.querySelectorAll('.project-card');
+                    allCards.forEach(card => {
+                        card.classList.remove('expanded', 'hidden');
+                        card.querySelector('.project-details').classList.add('hidden');
+                    });
+                    this.remove();
+                };
+                document.querySelector('.projects-grid').appendChild(backToGridButton);
+            }
+
+            // Gestionnaire d'événement pour le bouton retour
+            backButton.addEventListener('click', function() {
+                if (map.getZoom() === 4) {
+                    // Si on est dans la vue des projets
+                    const projectsContainer = document.querySelector('.projects-container');
+                    if (projectsContainer) {
+                        const allCards = document.querySelectorAll('.project-card');
+                        allCards.forEach(card => {
+                            card.classList.remove('expanded', 'hidden');
+                            card.querySelector('.project-details').classList.add('hidden');
+                        });
+                    }
+                }
+                backToGlobal();
+            });
+        }
+    </script>
+</body>
+</html> 
