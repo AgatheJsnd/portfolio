@@ -72,28 +72,28 @@
             // Ajouter les étiquettes personnalisées pour les continents
             const continentLabels = [
                 {
-                    lat: 48.8566,
-                    lng: 2.3522,
+                    lat: 46.2276,  // France
+                    lng: 2.2137,
                     text: 'À propos de moi',
                     className: 'continent-label',
-                    offset: [0, 40]  // Décalage vers le bas
+                    offset: [0, 40]
                 },
                 {
-                    lat: 37.0902,
+                    lat: 37.0902,  // USA
                     lng: -95.7129,
                     text: 'Mes projets',
                     className: 'continent-label',
                     offset: [0, 40]
                 },
                 {
-                    lat: 35.8617,
-                    lng: 104.1954,
+                    lat: 20.5937,  // Inde
+                    lng: 78.9629,
                     text: 'Les outils que je maîtrise',
                     className: 'continent-label',
                     offset: [0, 40]
                 },
                 {
-                    lat: -25.2744,
+                    lat: -25.2744,  // Australie
                     lng: 133.7751,
                     text: 'Contacter moi',
                     className: 'continent-label',
@@ -106,9 +106,10 @@
                 L.marker([label.lat, label.lng], {
                     icon: L.divIcon({
                         className: label.className,
-                        html: `<div class=\"custom-continent-label\">${label.text}</div>`,
+                        html: `<div class="custom-continent-label">${label.text}</div>`,
                         iconSize: [200, 40],
-                        iconAnchor: [100, 60] // Centré horizontalement, plus bas verticalement
+                        iconAnchor: [100, 40],
+                        offset: [0, 40]
                     })
                 }).addTo(map);
             });
@@ -440,15 +441,15 @@
             // Définition des points dans l'ordre du parcours
             const points = [
                 {
-                    lat: 48.8566,
-                    lng: 2.3522,
+                    lat: 46.2276,  // France
+                    lng: 2.2137,
                     title: 'À propos de moi',
                     content: 'Cliquez pour explorer l\'Europe',
                     color: '#CD5C5C',
                     onClick: zoomToEurope
                 },
                 {
-                    lat: 37.0902,
+                    lat: 37.0902,  // USA
                     lng: -95.7129,
                     title: 'Mes Projets',
                     content: 'Cliquez pour voir mes projets',
@@ -456,15 +457,15 @@
                     onClick: zoomToProjects
                 },
                 {
-                    lat: 35.8617,
-                    lng: 104.1954,
+                    lat: 20.5937,  // Inde
+                    lng: 78.9629,
                     title: 'Mes Compétences',
                     content: 'Survolez pour voir mes compétences',
                     color: '#CD5C5C',
                     onClick: zoomToSkills
                 },
                 {
-                    lat: -25.2744,
+                    lat: -25.2744,  // Australie
                     lng: 133.7751,
                     title: 'Contact',
                     content: 'Survolez pour me contacter',
@@ -487,12 +488,64 @@
                 lineJoin: 'round'
             }).addTo(map);
 
-            // Animation du chemin
+            // Création de l'avion animé
+            const planeIcon = L.divIcon({
+                className: 'animated-plane',
+                html: '<div class="plane">✈</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            const plane = L.marker(points[0], { 
+                icon: planeIcon,
+                zIndexOffset: 1000 // Assurer que l'avion est au-dessus des autres éléments
+            }).addTo(map);
+
+            let currentPoint = 0;
+            let progress = 0;
             let dashOffset = 0;
-            setInterval(() => {
+
+            // Animation du chemin et de l'avion
+            function animate() {
+                // Animation du chemin
                 dashOffset = (dashOffset + 1) % 20;
                 path.setStyle({ dashOffset: dashOffset });
-            }, 100);
+
+                // Animation de l'avion
+                if (currentPoint < points.length - 1) {
+                    const start = points[currentPoint];
+                    const end = points[currentPoint + 1];
+                    
+                    progress += 0.002; // Ralentir l'animation
+                    if (progress >= 1) {
+                        progress = 0;
+                        currentPoint++;
+                    }
+
+                    const lat = start.lat + (end.lat - start.lat) * progress;
+                    const lng = start.lng + (end.lng - start.lng) * progress;
+                    
+                    // Calculer l'angle de rotation de l'avion
+                    const angle = Math.atan2(end.lng - start.lng, end.lat - start.lat) * 180 / Math.PI - 90; // Changé de +90 à -90 pour corriger l'orientation
+                    
+                    plane.setLatLng([lat, lng]);
+                    plane.setIcon(L.divIcon({
+                        className: 'animated-plane',
+                        html: `<div class="plane" style="transform: rotate(${angle}deg)">✈</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    }));
+                } else {
+                    // Réinitialiser l'animation
+                    currentPoint = 0;
+                    progress = 0;
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            // Démarrer l'animation
+            animate();
 
             // Fonction pour zoomer sur les projets
             function zoomToProjects() {
@@ -583,22 +636,6 @@
                 };
                 document.querySelector('.projects-grid').appendChild(backToGridButton);
             }
-
-            // Gestionnaire d'événement pour le bouton retour
-            backButton.addEventListener('click', function() {
-                if (map.getZoom() === 4) {
-                    // Si on est dans la vue des projets
-                    const projectsContainer = document.querySelector('.projects-container');
-                    if (projectsContainer) {
-                        const allCards = document.querySelectorAll('.project-card');
-                        allCards.forEach(card => {
-                            card.classList.remove('expanded', 'hidden');
-                            card.querySelector('.project-details').classList.add('hidden');
-                        });
-                    }
-                }
-                backToGlobal();
-            });
         }
     </script>
 </body>

@@ -585,6 +585,7 @@ h1 {
 /* Style pour les étiquettes de continents personnalisées */
 .custom-continent-label {
     position: relative;
+    top: 40px;
     font-size: 1.1em;
     font-weight: 500;
     color: #333;
@@ -598,7 +599,6 @@ h1 {
 .continent-label {
     pointer-events: none;
     position: relative;
-    top: 40px;
 }
 
 /* Style pour le chemin animé */
@@ -613,4 +613,26 @@ h1 {
     to {
         stroke-dashoffset: -20;
     }
+}
+
+/* Style pour l'avion animé */
+.animated-plane {
+    background: none;
+    border: none;
+    z-index: 1000;
+}
+
+.plane {
+    font-size: 24px;
+    color: #CD5C5C;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+    display: block;
+    transform-origin: center;
+    position: relative;
+    top: -2px; /* Ajuster la position verticale */
+}
+
+.animated-plane:hover .plane {
+    transform: scale(1.2);
 } 
